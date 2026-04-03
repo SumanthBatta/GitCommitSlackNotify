@@ -78,5 +78,4 @@ cleanup() {
     echo "✅ Stopped."
 }
 trap cleanup EXIT
-
 tail -f /tmp/tunnel.log
