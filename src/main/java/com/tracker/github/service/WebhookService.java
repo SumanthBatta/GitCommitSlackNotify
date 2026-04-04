@@ -72,24 +72,24 @@ public void processPushEvent(Map<String, Object> payload) {
         throw new IllegalArgumentException("Payload cannot be null");
     }
 
-    // Extract pusher info safely
+
     Map<String, Object> pusher = (Map<String, Object>) payload.get("pusher");
     String pusherName = pusher != null ? (String) pusher.get("name") : "Unknown";
     String pusherEmail = pusher != null ? (String) pusher.get("email") : "unknown@example.com";
 
-    // Extract sender username safely
+
     Map<String, Object> sender = (Map<String, Object>) payload.get("sender");
     String username = sender != null ? (String) sender.get("login") : pusherName;
 
-    // Extract repo name safely
+
     Map<String, Object> repo = (Map<String, Object>) payload.get("repository");
     String repoName = repo != null ? (String) repo.get("full_name") : "Unknown repo";
 
-    // Save author
+
     Author author = new Author(pusherName, pusherEmail, username);
     author = authorRepository.save(author);
 
-    // Extract and save commits safely
+
     List<Map<String, Object>> commitList = (List<Map<String, Object>>) payload.get("commits");
     List<Commit> savedCommits = new ArrayList<>();
     if (commitList != null) {
@@ -111,7 +111,7 @@ public void processPushEvent(Map<String, Object> payload) {
         }
     }
 
-    // Send Slack notification
+
     slackService.sendPushNotification(author, savedCommits, repoName);
 }
 
