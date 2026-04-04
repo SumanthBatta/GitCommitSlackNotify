@@ -26,43 +26,95 @@ public class WebhookService {
         this.slackService = slackService;
     }
 
-    @Transactional
-    @SuppressWarnings("unchecked")
-    public void processPushEvent(Map<String, Object> payload) {
-        // Extract pusher info
-        Map<String, Object> pusher = (Map<String, Object>) payload.get("pusher");
-        String pusherName = (String) pusher.get("name");
-        String pusherEmail = (String) pusher.get("email");
+//    @Transactional
+//    @SuppressWarnings("unchecked")
+//    public void processPushEvent(Map<String, Object> payload) {
+//        // Extract pusher info
+//        Map<String, Object> pusher = (Map<String, Object>) payload.get("pusher");
+//        String pusherName = (String) pusher.get("name");
+//        String pusherEmail = (String) pusher.get("email");
+//
+//        // Extract sender username
+//        Map<String, Object> sender = (Map<String, Object>) payload.get("sender");
+//        String username = sender != null ? (String) sender.get("login") : pusherName;
+//
+//        // Extract repo name
+//        Map<String, Object> repo = (Map<String, Object>) payload.get("repository");
+//        String repoName = (String) repo.get("full_name");
+//
+//        // Save author
+//        Author author = new Author(pusherName, pusherEmail, username);
+//        author = authorRepository.save(author);
+//
+//        // Extract and save commits
+//        List<Map<String, Object>> commitList = (List<Map<String, Object>>) payload.get("commits");
+//        List<Commit> savedCommits = new ArrayList<>();
+//
+//        for (Map<String, Object> c : commitList) {
+//            String commitId = (String) c.get("id");
+//            String message = (String) c.get("message");
+//            String url = (String) c.get("url");
+//            String timestampStr = (String) c.get("timestamp");
+//
+//            LocalDateTime timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+//
+//            Commit commit = new Commit(commitId, message, url, timestamp, author);
+//            savedCommits.add(commitRepository.save(commit));
+//        }
+//
+//        // Send Slack notification
+//        slackService.sendPushNotification(author, savedCommits, repoName);
+//    }
+@Transactional
+@SuppressWarnings("unchecked")
+public void processPushEvent(Map<String, Object> payload) {
+    if (payload == null) {
+        throw new IllegalArgumentException("Payload cannot be null");
+    }
 
-        // Extract sender username
-        Map<String, Object> sender = (Map<String, Object>) payload.get("sender");
-        String username = sender != null ? (String) sender.get("login") : pusherName;
+    // Extract pusher info safely
+    Map<String, Object> pusher = (Map<String, Object>) payload.get("pusher");
+    String pusherName = pusher != null ? (String) pusher.get("name") : "Unknown";
+    String pusherEmail = pusher != null ? (String) pusher.get("email") : "unknown@example.com";
 
-        // Extract repo name
-        Map<String, Object> repo = (Map<String, Object>) payload.get("repository");
-        String repoName = (String) repo.get("full_name");
+    // Extract sender username safely
+    Map<String, Object> sender = (Map<String, Object>) payload.get("sender");
+    String username = sender != null ? (String) sender.get("login") : pusherName;
 
-        // Save author
-        Author author = new Author(pusherName, pusherEmail, username);
-        author = authorRepository.save(author);
+    // Extract repo name safely
+    Map<String, Object> repo = (Map<String, Object>) payload.get("repository");
+    String repoName = repo != null ? (String) repo.get("full_name") : "Unknown repo";
 
-        // Extract and save commits
-        List<Map<String, Object>> commitList = (List<Map<String, Object>>) payload.get("commits");
-        List<Commit> savedCommits = new ArrayList<>();
+    // Save author
+    Author author = new Author(pusherName, pusherEmail, username);
+    author = authorRepository.save(author);
 
+    // Extract and save commits safely
+    List<Map<String, Object>> commitList = (List<Map<String, Object>>) payload.get("commits");
+    List<Commit> savedCommits = new ArrayList<>();
+    if (commitList != null) {
         for (Map<String, Object> c : commitList) {
             String commitId = (String) c.get("id");
             String message = (String) c.get("message");
             String url = (String) c.get("url");
             String timestampStr = (String) c.get("timestamp");
 
-            LocalDateTime timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            LocalDateTime timestamp = null;
+            try {
+                timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            } catch (Exception e) {
+                timestamp = LocalDateTime.now(); // fallback
+            }
 
             Commit commit = new Commit(commitId, message, url, timestamp, author);
             savedCommits.add(commitRepository.save(commit));
         }
-
-        // Send Slack notification
-        slackService.sendPushNotification(author, savedCommits, repoName);
     }
+
+    // Send Slack notification
+    slackService.sendPushNotification(author, savedCommits, repoName);
+}
+
+
+
 }
